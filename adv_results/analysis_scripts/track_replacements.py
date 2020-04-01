@@ -1,9 +1,21 @@
 import sys
 
+MASK_TOKEN = 'MASK'
+
 class ReplacementTracker:
     def __init__(self, f):
         lines = f.readlines()
         self.list = self.create_sentence_pairs(lines)
+    def create_data(self):
+        data = []
+        for s_pair in self.list:
+            mask_sentence = s_pair['orig']
+            replacement_indices = s_pair['replacement_indices']
+            for i, token in enumerate(mask_sentence):
+                if i in replacement_indices:
+                    mask_sentence[i] = MASK_TOKEN
+            data.append(mask_sentence)
+        return data
     def create_sentence_pairs(self, lines):
         # pair_list: list of dictionaries, to be returned
         pair_list = []
@@ -11,6 +23,8 @@ class ReplacementTracker:
         # 'orig' for original and 'adv' for adversarial
         # and the list of replacements (a list of 2-element lists)
         sent_pair = {}
+        sent_pair['replacements'] = []
+        sent_pair['replacement_indices'] = []
         for line in lines:
             tokens = line.split()
             if tokens == []:
@@ -27,7 +41,7 @@ class ReplacementTracker:
             if 'orig' in sent_pair.keys() and 'adv' in sent_pair.keys():
                 # extract_replacements returns a list of 2-element lists
                 # one 2-element list [original, replaced] for each replaced word
-                sent_pair['replacements'] = self.extract_replacements(
+                sent_pair['replacements'] , sent_pair['replacement_indices'] = self.extract_replacements(
                     sent_pair['orig'],
                     sent_pair['adv'],
                 )
@@ -36,10 +50,12 @@ class ReplacementTracker:
         return pair_list
     def extract_replacements(self, orig, adv):
         replacements = []
+        indices = []
         for i in range(len(orig)):
             if orig[i] != adv[i]:
                 replacements.append([orig[i], adv[i]])
-        return replacements
+                indices.append(i)
+        return replacements, indices
 
 
 def main(filepath):
@@ -47,6 +63,8 @@ def main(filepath):
         reptracker = ReplacementTracker(f)
     for pair in reptracker.list:
         print(pair['replacements'])
+    mlm_data = reptracker.create_data()
+    print(mlm_data)
     return reptracker
 
 if __name__ == "__main__":
