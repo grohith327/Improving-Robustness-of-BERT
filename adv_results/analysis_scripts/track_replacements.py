@@ -1,12 +1,13 @@
 import sys
 
-MASK_TOKEN = 'MASK'
+MASK_TOKEN = '[MASK]'
+CLS_TOKEN = '[CLS]'
 
 class ReplacementTracker:
     def __init__(self, f):
         lines = f.readlines()
         self.list = self.create_sentence_pairs(lines)
-    def create_data(self):
+    def create_datafile(self):
         data = []
         for s_pair in self.list:
             mask_sentence = s_pair['orig']
@@ -14,6 +15,7 @@ class ReplacementTracker:
             for i, token in enumerate(mask_sentence):
                 if i in replacement_indices:
                     mask_sentence[i] = MASK_TOKEN
+            mask_sentence = ['[CLS]'] + mask_sentence
             data.append(mask_sentence)
         return data
     def create_sentence_pairs(self, lines):
@@ -58,14 +60,3 @@ class ReplacementTracker:
         return replacements, indices
 
 
-def main(filepath):
-    with open(filepath, 'r') as f:
-        reptracker = ReplacementTracker(f)
-    for pair in reptracker.list:
-        print(pair['replacements'])
-    mlm_data = reptracker.create_data()
-    print(mlm_data)
-    return reptracker
-
-if __name__ == "__main__":
-    main(sys.argv[1])

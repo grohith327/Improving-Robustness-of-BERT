@@ -1,3 +1,5 @@
 
 .idea/
 .idea/workspace.xml
+adv_results/analysis_scripts/__pycache__/track_replacements.cpython-37.pyc
+adv_results/analysis_scripts/mask_index.py
