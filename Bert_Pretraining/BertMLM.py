@@ -5,10 +5,10 @@ from tqdm import tqdm, trange
 
 ## Params
 BATCH_SIZE = 32
-MAX_SEQ_LEN = 64
+MAX_SEQ_LEN = 128
 LR = 5e-5
 EPSILON = 1e-8
-EPOCHS = 150
+EPOCHS = 250
 MAX_GRAD_NORM = 1.0
 SAVE_PATH = './BERT_PRETRAINED'
 DATA_PATH = './adv_data/{}/adversaries.txt'
@@ -68,7 +68,7 @@ for org_line, adv_line in zip(org_sent, adv_sent):
 
 input_tensors = []
 labels = []
-for i in tqdm(range(len(adv_sent)), total = 717):
+for i in tqdm(range(len(adv_sent)), total = len(adv_sent)):
     masked_sent = adv_sent[i].split(' ')
     for pos in masks[i]:
         masked_sent[pos] = '[MASK]'
@@ -95,7 +95,7 @@ for i in tqdm(range(len(adv_sent)), total = 717):
 input_tensors = torch.tensor(input_tensors)
 labels = torch.tensor(labels)
 
-model = BertForMaskedLM.from_pretrained('bert-base-uncased')
+model = BertForMaskedLM.from_pretrained('bert-base-uncased', output_hidden_states = True)
 model.to(device)
 
 train_data = TensorDataset(input_tensors, labels)
