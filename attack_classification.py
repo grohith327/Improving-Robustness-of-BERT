@@ -16,7 +16,10 @@ from torch.utils.data import Dataset, DataLoader, SequentialSampler, TensorDatas
 # from BERT.tokenization import BertTokenizer
 # from BERT.modeling import BertForSequenceClassification, BertConfig
 
-from transformers import BertTokenizer
+from transformers import BertTokenizer, BertConfig, BertForMaskedLM
+
+config = BertConfig.from_pretrained("bert-base-uncased")
+config.output_hidden_states = True
 
 
 class USE(object):
@@ -104,10 +107,18 @@ def pick_most_similar_words_batch(
 
 
 class BertModel(nn.Module):
-    def __init__(self, bert_path):
+    def __init__(self, dataset):
         super(BertModel, self).__init__()
-        self.model = torch.load(bert_path)
-        self.dropout = nn.Dropout(0.4)
+        self.model = BertForMaskedLM(config=config)
+        if dataset == "mr":
+            self.model.load_state_dict(
+                torch.load("/scratch/rgg296/final_project/BERT_MLM_mr.bin")
+            )
+        else:
+            self.model.load_state_dict(
+                torch.load("/scratch/rgg296/final_project/BERT_MLM_imdb_150.bin")
+            )
+        self.dropout = nn.Dropout(0.2)
         self.linear = nn.Linear(768 * 2, 2)
 
     def forward(self, input_tensors):
@@ -125,11 +136,15 @@ class BertModel(nn.Module):
 
 
 class NLI_infer_BERT(nn.Module):
-    def __init__(self, nclasses, max_seq_length=64, batch_size=32):
+    def __init__(self, dataset, nclasses, max_seq_length=64, batch_size=32):
         super(NLI_infer_BERT, self).__init__()
-        self.model = BertModel("/scratch/rgg296/final_project/BERTMLM_PRETRAINED")
+        self.model = BertModel(dataset)
         self.model.load_state_dict(
-            torch.load("/scratch/rgg296/final_project/BertSentimentClassfication")
+            torch.load(
+                "/scratch/rgg296/final_project/BertSentimentClassfication_{}.bin".format(
+                    dataset
+                )
+            )
         )
         self.model.to("cuda")
         self.dataset = NLIDataset_BERT(
@@ -739,8 +754,11 @@ def main():
         checkpoint = torch.load(args.target_model_path, map_location="cuda:0")
         model.load_state_dict(checkpoint)
     elif args.target_model == "bert":
+        dataset_name = args.dataset_path.split("/")[-1]
         model = NLI_infer_BERT(
-            nclasses=args.nclasses, max_seq_length=args.max_seq_length
+            nclasses=args.nclasses,
+            dataset=dataset_name,
+            max_seq_length=args.max_seq_length,
         )
     predictor = model.text_pred
     print("Model built!")
