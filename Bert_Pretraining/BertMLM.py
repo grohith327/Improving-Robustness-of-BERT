@@ -10,14 +10,14 @@ from tqdm import tqdm, trange
 import glob
 
 ## Params
-BATCH_SIZE = 16
-MAX_SEQ_LEN = 128
+BATCH_SIZE = 64
+MAX_SEQ_LEN = 256
 LR = 5e-5
 EPSILON = 1e-8
-EPOCHS = 250
+EPOCHS = 150
 MAX_GRAD_NORM = 1.0
 dataset = "imdb"
-SAVE_PATH = "./BERT_MLM_{}.bin".format(dataset)
+SAVE_PATH = "./BERT_MLM_{}_{}.bin".format(dataset, EPOCHS)
 DATA_PATH = "./adv_results/*/*"
 
 device = None
@@ -33,6 +33,8 @@ def load_files():
 
     files = glob.glob(DATA_PATH)
     files = list(filter(lambda x: dataset in x and ".txt" in x, files))
+    files.sort()
+    files = files[:10]
 
     data = None
     for i, file in enumerate(files):
@@ -49,6 +51,23 @@ def load_files():
 
 data = load_files()
 print("Data Loaded, Data Length:{}".format(len(data)))
+
+
+# class Dataset:
+
+#     def __init__(self, data, max_seq_len):
+#         self.data = data
+#         self.tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+#         self.max_seq_len = max_seq_len
+
+#     def __getitem__(self, item):
+#         line = self.data[item]
+#         txt_type, line = line.split("\t")[0], line.split("\t")[1]
+#         if(txt)
+
+
+#     def process_data(self, )
+
 
 org_sent = []
 adv_sent = []
@@ -77,6 +96,8 @@ input_tensors = []
 labels = []
 for i in tqdm(range(len(adv_sent)), total=len(adv_sent)):
     masked_sent = adv_sent[i].split(" ")
+    if len(masked_sent) > MAX_SEQ_LEN:
+        continue
     for pos in masks[i]:
         masked_sent[pos] = "[MASK]"
     masked_sent = " ".join(masked_sent)
@@ -111,7 +132,7 @@ model.to(device)
 
 train_data = TensorDataset(input_tensors, labels)
 train_dataloader = DataLoader(
-    train_data, sampler=RandomSampler(train_data), batch_size=BATCH_SIZE
+    train_data, shuffle=False, batch_size=BATCH_SIZE, num_workers=4
 )
 
 optimizer = AdamW(model.parameters(), lr=LR, eps=EPSILON)
